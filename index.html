@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Guess It!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0e0e12; --surface: #18181f; --surface2: #22222d; --border: #2e2e3d;
+            --accent: #7c6dfa; --accent-glow: rgba(124,109,250,0.18); --accent-light: #a799ff;
+            --green: #3ecf8e; --red: #f25757; --yellow: #f5c542;
+            --text: #f0f0f6; --text-muted: #7e7e9a; --radius: 12px;
+        }
+        body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; display:flex; flex-direction:column; align-items:center; }
+
+        /* HEADER */
+        header { width:100%; padding:18px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+        .header-left { display:flex; align-items:center; gap:10px; }
+        header h1 { font-family:'Syne',sans-serif; font-size:1.35rem; color:var(--accent-light); }
+        .dot { width:8px; height:8px; background:var(--accent); border-radius:50%; box-shadow:0 0 8px var(--accent); }
+        .header-badge { font-size:0.78rem; font-weight:600; color:var(--text-muted); background:var(--surface2); border:1px solid var(--border); padding:3px 11px; border-radius:99px; display:none; }
+
+        /* SCREENS */
+        .screen { display:none; width:100%; max-width:500px; padding:32px 20px; flex-direction:column; gap:18px; }
+        .screen.active { display:flex; }
+
+        /* CARD */
+        .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px; display:flex; flex-direction:column; gap:16px; }
+        .card-title { font-family:'Syne',sans-serif; font-size:1.1rem; }
+        .card-sub { font-size:0.82rem; color:var(--text-muted); margin-top:-8px; }
+
+        /* FORM */
+        label { display:flex; flex-direction:column; gap:5px; font-size:0.75rem; font-weight:600; color:var(--text-muted); letter-spacing:.06em; text-transform:uppercase; }
+        input[type="text"] { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:11px 13px; color:var(--text); font-family:'Inter',sans-serif; font-size:.95rem; outline:none; transition:border-color .2s; }
+        input[type="text"]:focus { border-color:var(--accent); }
+        input[type="text"]::placeholder { color:var(--text-muted); }
+
+        /* BUTTONS */
+        .btn { padding:12px 18px; border-radius:8px; border:none; font-family:'Inter',sans-serif; font-size:.92rem; font-weight:600; cursor:pointer; transition:opacity .15s, transform .1s; }
+        .btn:active { transform:scale(.98); }
+        .btn-primary { background:var(--accent); color:#fff; box-shadow:0 0 18px var(--accent-glow); }
+        .btn-primary:hover { opacity:.88; }
+        .btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+        .btn-secondary:hover { border-color:var(--accent); color:var(--accent-light); }
+        .btn:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+        .btn-green { background:var(--green); color:#0e0e12; font-weight:700; }
+        .btn-green:hover { opacity:.88; }
+
+        /* DIVIDER */
+        .divider { display:flex; align-items:center; gap:10px; color:var(--text-muted); font-size:.78rem; }
+        .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--border); }
+
+        /* CODE BOX */
+        .code-box { background:var(--surface2); border:1px solid var(--accent); border-radius:var(--radius); padding:18px; text-align:center; box-shadow:0 0 24px var(--accent-glow); }
+        .code-label { font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); margin-bottom:6px; }
+        .code-value { font-family:'Syne',sans-serif; font-size:2rem; color:var(--accent-light); letter-spacing:4px; }
+        .code-hint { font-size:.76rem; color:var(--text-muted); margin-top:6px; }
+
+        /* Q-COUNT SELECTOR */
+        .q-selector { display:flex; gap:8px; }
+        .q-opt { flex:1; padding:11px 6px; border-radius:8px; border:2px solid var(--border); background:var(--surface2); color:var(--text-muted); font-family:'Syne',sans-serif; font-size:1.05rem; font-weight:700; cursor:pointer; text-align:center; transition:border-color .15s,color .15s,background .15s; }
+        .q-opt:hover { border-color:var(--accent); color:var(--accent-light); }
+        .q-opt.selected { border-color:var(--accent); background:var(--accent-glow); color:var(--accent-light); }
+        .q-opt-sub { font-size:.62rem; font-weight:500; color:var(--text-muted); display:block; margin-top:2px; font-family:'Inter',sans-serif; }
+
+        /* PLAYER LIST */
+        .player-list { display:flex; flex-direction:column; gap:6px; }
+        .player-item { display:flex; align-items:center; gap:9px; padding:8px 11px; background:var(--surface2); border-radius:8px; font-size:.87rem; }
+        .avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.76rem; flex-shrink:0; }
+        .player-name { flex:1; font-weight:500; }
+        .player-pts  { color:var(--accent-light); font-weight:700; font-size:.8rem; min-width:40px; text-align:right; }
+        .badge { padding:2px 7px; border-radius:4px; font-size:.65rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+        .badge-master { background:rgba(245,197,66,.15); color:var(--yellow); }
+        .badge-you    { background:rgba(124,109,250,.15); color:var(--accent-light); }
+
+        /* NOTICE */
+        .notice { font-size:.8rem; color:var(--text-muted); text-align:center; padding:9px; border:1px dashed var(--border); border-radius:8px; }
+        .notice span { color:var(--accent-light); font-weight:600; }
+
+        /* PROGRESS BAR */
+        .q-progress { display:flex; gap:5px; }
+        .q-pip { flex:1; height:5px; border-radius:99px; background:var(--border); transition:background .3s; }
+        .q-pip.done    { background:var(--green); }
+        .q-pip.current { background:var(--accent); }
+
+        /* TIMER */
+        .timer-row { display:flex; align-items:center; gap:12px; }
+        .timer-num { font-family:'Syne',sans-serif; font-size:1.45rem; color:var(--accent-light); min-width:48px; }
+        .timer-track { flex:1; background:var(--surface2); border-radius:99px; height:5px; overflow:hidden; }
+        .timer-fill  { height:100%; background:var(--accent); border-radius:99px; transition:width 1s linear,background .5s; width:100%; }
+
+        /* QUESTION CARD */
+        .q-display { background:var(--surface2); border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:13px 15px; font-size:.98rem; font-weight:500; }
+
+        /* CHAT */
+        .chat { display:flex; flex-direction:column; gap:5px; max-height:170px; overflow-y:auto; padding-right:3px; }
+        .chat::-webkit-scrollbar { width:3px; }
+        .chat::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+        .chat-item { padding:7px 11px; border-radius:6px; font-size:.82rem; line-height:1.4; background:var(--surface2); color:var(--text-muted); border-left:2px solid var(--border); }
+        .chat-item.correct { background:rgba(62,207,142,.08); border-left-color:var(--green); color:var(--green); }
+        .chat-item.wrong   { background:rgba(242,87,87,.08);  border-left-color:var(--red);   color:#ff9a9a; }
+        .chat-item.system  { background:rgba(124,109,250,.08);border-left-color:var(--accent); color:var(--accent-light); }
+
+        /* ERROR */
+        .err { background:rgba(242,87,87,.1); border:1px solid rgba(242,87,87,.3); border-radius:8px; padding:10px 13px; font-size:.82rem; color:var(--red); display:none; }
+        .err.show { display:block; }
+
+        /* ROLE TAG */
+        .role-tag { display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:99px; font-size:.76rem; font-weight:600; }
+        .role-master { background:rgba(245,197,66,.12); color:var(--yellow); }
+        .role-player { background:rgba(62,207,142,.12); color:var(--green); }
+
+        /* SCORE TABLE */
+        .score-tbl { width:100%; border-collapse:collapse; }
+        .score-tbl th { font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); padding:5px 9px; text-align:left; border-bottom:1px solid var(--border); }
+        .score-tbl td { padding:9px; font-size:.88rem; border-bottom:1px solid var(--border); }
+        .score-tbl tr:last-child td { border-bottom:none; }
+        .score-tbl .rank { color:var(--text-muted); font-size:.78rem; width:24px; }
+        .score-tbl .pts  { color:var(--accent-light); font-weight:700; text-align:right; }
+        .score-tbl tr.gold td { color:var(--yellow); }
+
+        /* WINNER */
+        .winner-box { text-align:center; padding:18px; background:rgba(245,197,66,.07); border:1px solid rgba(245,197,66,.2); border-radius:var(--radius); }
+        .winner-trophy { font-size:2.6rem; }
+        .winner-name  { font-family:'Syne',sans-serif; font-size:1.4rem; margin-top:5px; color:var(--yellow); }
+        .winner-sub   { font-size:.81rem; color:var(--text-muted); margin-top:3px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-left"><div class="dot"></div><h1>Guess It!</h1></div>
+    <div class="header-badge" id="header-badge">Q 1 / 5</div>
+</header>
+
+<!-- ══════════════════════════
+     SCREEN 1 — Entry
+══════════════════════════ -->
+<div class="screen active" id="s-entry">
+    <div class="card">
+        <div><div class="card-title">Create a game</div><div class="card-sub">You become Game Master and receive a code to share</div></div>
+        <label>Your name<input type="text" id="create-name" placeholder="Enter your name" maxlength="20"/></label>
+        <div id="create-err" class="err"></div>
+        <button class="btn btn-primary" onclick="handleCreate()">Create game</button>
+    </div>
+
+    <div class="divider">or join with a code</div>
+
+    <div class="card">
+        <div><div class="card-title">Join a game</div><div class="card-sub">Enter the code shared by the Game Master</div></div>
+        <label>Your name<input type="text" id="join-name" placeholder="Enter your name" maxlength="20"/></label>
+        <label>Game code<input type="text" id="join-code" placeholder="e.g. BLUE42" maxlength="8" style="text-transform:uppercase;letter-spacing:2px;font-weight:700;"/></label>
+        <div id="join-err" class="err"></div>
+        <button class="btn btn-primary" onclick="handleJoin()">Join game</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════
+     SCREEN 2 — Lobby
+══════════════════════════ -->
+<div class="screen" id="s-lobby">
+
+    <!-- Code display — only game master sees this -->
+    <div class="card" id="lobby-code-card" style="display:none">
+        <div class="code-box">
+            <div class="code-label">Share this code with players</div>
+            <div class="code-value" id="lobby-code">——</div>
+            <div class="code-hint">Players enter this on the join screen</div>
+        </div>
+    </div>
+
+    <!-- Players list -->
+    <div class="card">
+        <div class="card-title">Players</div>
+        <div class="player-list" id="lobby-players"></div>
+        <div class="notice" id="lobby-notice">Waiting for <span id="lobby-need">3</span> more player(s)</div>
+        <div id="lobby-err" class="err"></div>
+    </div>
+
+    <!-- Question count selector — game master only -->
+    <div class="card" id="q-count-card" style="display:none">
+        <div><div class="card-title">Questions per session</div><div class="card-sub">How many questions will each Game Master ask?</div></div>
+        <div class="q-selector">
+            <div class="q-opt" onclick="selectQCount(3,this)">3<span class="q-opt-sub">Quick</span></div>
+            <div class="q-opt selected" onclick="selectQCount(5,this)">5<span class="q-opt-sub">Standard</span></div>
+            <div class="q-opt" onclick="selectQCount(7,this)">7<span class="q-opt-sub">Long</span></div>
+        </div>
+        <button class="btn btn-primary" id="btn-start" onclick="goToGame()" disabled>Waiting for players…</button>
+    </div>
+
+    <!-- Non-master waiting message -->
+    <div class="card" id="lobby-waiting-card" style="display:none">
+        <div style="text-align:center;color:var(--text-muted);font-size:.87rem;">⏳ Waiting for Game Master to start…</div>
+    </div>
+</div>
+
+<!-- ══════════════════════════
+     SCREEN 3 — Game (active question)
+══════════════════════════ -->
+<div class="screen" id="s-game">
+    <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span id="game-label" class="card-title">Question 1 of 5</span>
+            <span id="role-tag" class="role-tag">—</span>
+        </div>
+
+        <!-- Question progress pips -->
+        <div class="q-progress" id="q-pips"></div>
+
+        <!-- Timer -->
+        <div class="timer-row">
+            <div class="timer-num" id="timer-num">60s</div>
+            <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+        </div>
+
+        <!-- Active question text -->
+        <div id="q-display" class="q-display" style="display:none"></div>
+
+        <!-- Game master: post question form -->
+        <div id="master-form" style="display:none;flex-direction:column;gap:12px;">
+            <label>Question<input type="text" id="inp-question" placeholder="Type your question…"/></label>
+            <label>Answer<input type="text" id="inp-answer" placeholder="The correct answer"/></label>
+            <div id="gm-err" class="err"></div>
+            <button class="btn btn-primary" onclick="submitQuestion()">Post question</button>
+        </div>
+
+        <!-- Guesser: answer form -->
+        <div id="player-form" style="display:none;flex-direction:column;gap:12px;">
+            <label>Your guess<input type="text" id="inp-guess" placeholder="Type your answer…"/></label>
+            <div id="guess-err" class="err"></div>
+            <button class="btn btn-primary" onclick="submitGuess()">Submit guess</button>
+        </div>
+    </div>
+
+    <!-- Live scoreboard -->
+    <div class="card">
+        <div class="card-title">Scoreboard</div>
+        <table class="score-tbl"><thead><tr><th>#</th><th>Player</th><th style="text-align:right">Pts</th></tr></thead><tbody id="live-scores"></tbody></table>
+    </div>
+
+    <!-- Game log -->
+    <div class="card">
+        <div class="card-title">Game log</div>
+        <div class="chat" id="chat"></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════
+     SCREEN 4 — Between questions (same master)
+══════════════════════════ -->
+<div class="screen" id="s-between">
+    <div class="card" style="align-items:center;gap:6px;text-align:center;">
+        <div style="font-size:2rem;">✅</div>
+        <div class="card-title" id="bq-title">Question complete</div>
+        <div style="color:var(--text-muted);font-size:.84rem;" id="bq-sub">Game master posts the next question</div>
+    </div>
+    <div class="card">
+        <div class="card-title">Current scores</div>
+        <table class="score-tbl"><thead><tr><th>#</th><th>Player</th><th style="text-align:right">Pts</th></tr></thead><tbody id="bq-scores"></tbody></table>
+    </div>
+    <button class="btn btn-primary" onclick="continueBetween()">Continue →</button>
+</div>
+
+<!-- ══════════════════════════
+     SCREEN 5 — Session complete / new master
+══════════════════════════ -->
+<div class="screen" id="s-session">
+    <div class="card" style="align-items:center;gap:6px;text-align:center;">
+        <div style="font-size:2.2rem;">👑</div>
+        <div class="card-title" id="sess-title">New Game Master!</div>
+        <div style="color:var(--text-muted);font-size:.84rem;" id="sess-sub"></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Scores after this session</div>
+        <table class="score-tbl"><thead><tr><th>#</th><th>Player</th><th style="text-align:right">Pts</th></tr></thead><tbody id="sess-scores"></tbody></table>
+    </div>
+    <button class="btn btn-primary" onclick="continueSession()">Continue →</button>
+</div>
+
+<!-- ══════════════════════════
+     SCREEN 6 — Game over
+══════════════════════════ -->
+<div class="screen" id="s-gameover">
+    <div class="winner-box card">
+        <div class="winner-trophy">🏆</div>
+        <div class="winner-name" id="go-winner">—</div>
+        <div class="winner-sub">wins the game!</div>
+    </div>
+    <div class="card">
+        <div class="card-title">Final scores</div>
+        <table class="score-tbl"><thead><tr><th>#</th><th>Player</th><th style="text-align:right">Pts</th></tr></thead><tbody id="go-scores"></tbody></table>
+    </div>
+    <button class="btn btn-green" id="btn-new-game" onclick="startNewGame()" style="display:none">Start new game</button>
+    <div id="go-waiting" style="display:none;text-align:center;color:var(--text-muted);font-size:.84rem;">⏳ Waiting for Game Master to start a new game…</div>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+// ── STATE ─────────────────────────────────────
+let socket              = null;
+let myPlayer            = null;
+let currentPlayers      = [];
+let questionInSession   = 0;
+let questionsPerSession = 5;
+let selectedQCount      = 5;
+
+// ── SCREENS ───────────────────────────────────
+function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+function setErr(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg; el.classList.add('show');
+}
+function clrErr(id) {
+    const el = document.getElementById(id);
+    el.textContent = ''; el.classList.remove('show');
+}
+function updateHeaderBadge() {
+    const b = document.getElementById('header-badge');
+    if (questionInSession > 0) {
+        b.textContent = `Q ${questionInSession} / ${questionsPerSession}`;
+        b.style.display = 'block';
+    } else {
+        b.style.display = 'none';
+    }
+}
+
+// ── SCREEN 1: ENTRY ───────────────────────────
+function handleCreate() {
+    const name = document.getElementById('create-name').value.trim();
+    if (!name) { setErr('create-err', 'Please enter your name.'); return; }
+    clrErr('create-err');
+    socket = io();
+    attachListeners();
+    socket.emit('create_game', { name });
+}
+function handleJoin() {
+    const name = document.getElementById('join-name').value.trim();
+    const code = document.getElementById('join-code').value.trim().toUpperCase();
+    if (!name) { setErr('join-err', 'Please enter your name.'); return; }
+    if (!code) { setErr('join-err', 'Please enter the game code.'); return; }
+    clrErr('join-err');
+    socket = io();
+    attachListeners();
+    socket.emit('join_game', { name, code });
+}
+
+// ── SCREEN 2: LOBBY ───────────────────────────
+function selectQCount(n, el) {
+    selectedQCount = n;
+    document.querySelectorAll('.q-opt').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    socket.emit('set_questions', { count: n });
+}
+
+function renderLobbyPlayers(players) {
+    const list = document.getElementById('lobby-players');
+    list.innerHTML = '';
+    players.forEach(p => list.appendChild(makePlayerItem(p, false)));
+
+    const needed = Math.max(0, 3 - players.length);
+    const notice = document.getElementById('lobby-notice');
+    const btn    = document.getElementById('btn-start');
+    if (needed > 0) {
+        document.getElementById('lobby-need').textContent = needed;
+        notice.style.display = 'block';
+        if (btn) { btn.disabled = true; btn.textContent = 'Waiting for players…'; }
+    } else {
+        notice.style.display = 'none';
+        if (btn) { btn.disabled = false; btn.textContent = 'Start game →'; }
+    }
+}
+
+function goToGame() {
+    show('s-game');
+    renderGameScreen();
+}
+
+// ── SCREEN 3: GAME ────────────────────────────
+function renderGameScreen() {
+    if (myPlayer) myPlayer = currentPlayers.find(p => p.id === myPlayer.id) || myPlayer;
+
+    const roleTag  = document.getElementById('role-tag');
+    const gmForm   = document.getElementById('master-form');
+    const plForm   = document.getElementById('player-form');
+
+    document.getElementById('game-label').textContent =
+        `Question ${questionInSession + 1} of ${questionsPerSession}`;
+
+    renderPips(questionInSession, questionsPerSession);
+
+    if (myPlayer && myPlayer.isGameMaster) {
+        roleTag.textContent = '👑 Game Master'; roleTag.className = 'role-tag role-master';
+        gmForm.style.display = 'flex'; plForm.style.display = 'none';
+    } else {
+        roleTag.textContent = '🎯 Guesser'; roleTag.className = 'role-tag role-player';
+        gmForm.style.display = 'none'; plForm.style.display = 'none'; // shown when question arrives
+    }
+    document.getElementById('q-display').style.display = 'none';
+    renderScoreTable('live-scores', currentPlayers);
+    updateHeaderBadge();
+}
+
+function renderPips(done, total) {
+    const container = document.getElementById('q-pips');
+    container.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+        const pip = document.createElement('div');
+        pip.className = 'q-pip' + (i < done ? ' done' : i === done ? ' current' : '');
+        container.appendChild(pip);
+    }
+}
+
+function submitQuestion() {
+    const q = document.getElementById('inp-question').value.trim();
+    const a = document.getElementById('inp-answer').value.trim();
+    if (!q) { setErr('gm-err', 'Please enter a question.'); return; }
+    if (!a) { setErr('gm-err', 'Please enter the answer.'); return; }
+    clrErr('gm-err');
+    socket.emit('create_question', { question: q, answer: a });
+    document.getElementById('master-form').style.display = 'none';
+}
+
+function submitGuess() {
+    const g = document.getElementById('inp-guess').value.trim();
+    if (!g) { setErr('guess-err', 'Please type your guess.'); return; }
+    clrErr('guess-err');
+    socket.emit('guess_answer', { answer: g });
+    document.getElementById('inp-guess').value = '';
+}
+
+function addLog(msg, type = '') {
+    const chat = document.getElementById('chat');
+    const item = document.createElement('div');
+    item.className = `chat-item ${type}`;
+    item.textContent = msg;
+    chat.appendChild(item);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// ── SCREEN 4: BETWEEN QUESTIONS ───────────────
+function showBetween(event) {
+    const { players, questionInSession: qi, questionsPerSession: qt, gameMaster } = event.data;
+    currentPlayers    = players;
+    questionInSession = qi;
+    questionsPerSession = qt;
+    if (myPlayer) myPlayer = players.find(p => p.id === myPlayer.id) || myPlayer;
+
+    const isGM = myPlayer && myPlayer.isGameMaster;
+    document.getElementById('bq-title').textContent =
+        `Question ${qi} of ${qt} complete`;
+    document.getElementById('bq-sub').textContent = isGM
+        ? 'Post the next question when ready'
+        : `${gameMaster.name} will post the next question`;
+
+    renderScoreTable('bq-scores', players);
+    updateHeaderBadge();
+    show('s-between');
+}
+
+function continueBetween() {
+    show('s-game');
+    renderGameScreen();
+    resetTimerUI();
+    document.getElementById('inp-question').value = '';
+    document.getElementById('inp-answer').value = '';
+    document.getElementById('inp-guess').value = '';
+}
+
+// ── SCREEN 5: SESSION COMPLETE ────────────────
+function showSessionComplete(newMasterEvent) {
+    const { players, gameMaster, questionsPerSession: qt } = newMasterEvent.data;
+    currentPlayers    = players;
+    questionsPerSession = qt;
+    questionInSession = 0;
+    if (myPlayer) myPlayer = players.find(p => p.id === myPlayer.id) || myPlayer;
+
+    const isNewGM = myPlayer && myPlayer.id === gameMaster.id;
+    document.getElementById('sess-title').textContent = isNewGM
+        ? 'You are the new Game Master! 👑'
+        : `${gameMaster.name} is the new Game Master!`;
+    document.getElementById('sess-sub').textContent = isNewGM
+        ? `You'll ask ${qt} questions in your session`
+        : `${gameMaster.name} will ask ${qt} questions`;
+
+    renderScoreTable('sess-scores', players);
+    updateHeaderBadge();
+    show('s-session');
+}
+
+function continueSession() {
+    show('s-game');
+    renderGameScreen();
+    resetTimerUI();
+    document.getElementById('inp-question').value = '';
+    document.getElementById('inp-answer').value = '';
+    document.getElementById('inp-guess').value = '';
+}
+
+// ── SCREEN 6: GAME OVER ───────────────────────
+function showGameOver(event) {
+    const { players, winner } = event.data;
+    currentPlayers = players;
+    if (myPlayer) myPlayer = players.find(p => p.id === myPlayer.id) || myPlayer;
+
+    document.getElementById('go-winner').textContent = winner.name;
+    renderScoreTable('go-scores', players);
+
+    const isGM = myPlayer && myPlayer.isGameMaster;
+    document.getElementById('btn-new-game').style.display  = isGM ? 'block' : 'none';
+    document.getElementById('go-waiting').style.display    = isGM ? 'none'  : 'block';
+    document.getElementById('header-badge').style.display  = 'none';
+    show('s-gameover');
+}
+
+function startNewGame() {
+    socket.emit('start_new_game');
+}
+
+// ── SOCKET LISTENERS ──────────────────────────
+function attachListeners() {
+
+    // Host: game created — receive code and go to lobby
+    socket.on('game_created', (data) => {
+        myPlayer            = data.player;
+        currentPlayers      = data.players;
+        questionsPerSession = data.questionsPerSession;
+
+        document.getElementById('lobby-code').textContent = data.joinCode;
+        document.getElementById('lobby-code-card').style.display = 'flex';
+        document.getElementById('q-count-card').style.display    = 'flex';
+        document.getElementById('lobby-waiting-card').style.display = 'none';
+
+        renderLobbyPlayers(currentPlayers);
+        show('s-lobby');
+    });
+
+    // Someone joined — update lobby for everyone
+    socket.on('player_joined', (event) => {
+        currentPlayers      = event.data.players;
+        questionsPerSession = event.data.questionsPerSession;
+
+        // If this browser just joined (not the host)
+        if (!myPlayer) {
+            myPlayer = currentPlayers.find(p => p.id === socket.id);
+            document.getElementById('lobby-code-card').style.display    = 'none';
+            document.getElementById('q-count-card').style.display       = 'none';
+            document.getElementById('lobby-waiting-card').style.display = 'flex';
+            show('s-lobby');
+        } else {
+            myPlayer = currentPlayers.find(p => p.id === socket.id) || myPlayer;
+        }
+
+        renderLobbyPlayers(currentPlayers);
+        addLog(event.message, 'system');
+    });
+
+    socket.on('session_config_updated', (event) => {
+        questionsPerSession = event.data.questionsPerSession;
+        addLog(event.message, 'system');
+    });
+
+    socket.on('join_error', (event) => {
+        const active = document.querySelector('.screen.active').id;
+        if (active === 's-entry') {
+            // show error on whichever form was being used
+            setErr('join-err', event.message);
+            setErr('create-err', event.message);
+        } else if (active === 's-lobby') setErr('lobby-err', event.message);
+        else addLog(`⚠ ${event.message}`, 'wrong');
+    });
+
+    // A question was posted — go to game screen
+    socket.on('question_created', (event) => {
+        questionInSession   = event.data.questionInSession;
+        questionsPerSession = event.data.questionsPerSession;
+        if (myPlayer) myPlayer = currentPlayers.find(p => p.id === myPlayer.id) || myPlayer;
+
+        // Make sure we're on the game screen
+        show('s-game');
+
+        // Update labels
+        document.getElementById('game-label').textContent =
+            `Question ${questionInSession} of ${questionsPerSession}`;
+        renderPips(questionInSession - 1, questionsPerSession);
+        updateHeaderBadge();
+
+        // Show the question
+        const qd = document.getElementById('q-display');
+        qd.textContent = event.message;
+        qd.style.display = 'block';
+
+        // Show the right form
+        document.getElementById('master-form').style.display = 'none';
+        if (myPlayer && !myPlayer.isGameMaster) {
+            document.getElementById('player-form').style.display = 'flex';
+        }
+
+        const roleTag = document.getElementById('role-tag');
+        if (myPlayer && myPlayer.isGameMaster) {
+            roleTag.textContent = '👑 Game Master'; roleTag.className = 'role-tag role-master';
+        } else {
+            roleTag.textContent = '🎯 Guesser'; roleTag.className = 'role-tag role-player';
+        }
+
+        renderScoreTable('live-scores', currentPlayers);
+        addLog(event.message, 'system');
+    });
+
+    // Timer tick
+    socket.on('time', (event) => {
+        const s = event.message;
+        document.getElementById('timer-num').textContent = `${s}s`;
+        const fill = document.getElementById('timer-fill');
+        fill.style.width = `${(s / 60) * 100}%`;
+        fill.style.background = s <= 10 ? 'var(--red)' : s <= 20 ? 'var(--yellow)' : 'var(--accent)';
+    });
+
+    socket.on('time_expired', (event) => {
+        addLog(event.message, 'wrong');
+        document.getElementById('timer-num').textContent = '0s';
+        document.getElementById('timer-fill').style.width = '0%';
+    });
+
+    // A guess came in
+    socket.on('guess', (event) => {
+        addLog(event.message, event.data.isCorrect ? 'correct' : 'wrong');
+        if (event.data.players) {
+            currentPlayers = event.data.players;
+            if (myPlayer) myPlayer = currentPlayers.find(p => p.id === myPlayer.id) || myPlayer;
+            renderScoreTable('live-scores', currentPlayers);
+        }
+    });
+
+    // Same game master, next question — show between screen
+    socket.on('question_complete', (event) => {
+        showBetween(event);
+    });
+
+    // Session done — show session complete screen, then new master screen
+    socket.on('session_complete', (event) => {
+        // Just log it; new_game_master will follow immediately and show the screen
+        addLog(event.message, 'system');
+    });
+
+    // New game master assigned after a session
+    socket.on('new_game_master', (event) => {
+        showSessionComplete(event);
+    });
+
+    socket.on('game_over', (event) => {
+        showGameOver(event);
+    });
+
+    // New game started — reset and go to lobby
+    socket.on('new_game_started', (event) => {
+        currentPlayers      = event.data.players;
+        questionsPerSession = event.data.questionsPerSession;
+        questionInSession   = 0;
+        if (myPlayer) myPlayer = currentPlayers.find(p => p.id === myPlayer.id) || myPlayer;
+
+        // Clear everything
+        document.getElementById('chat').innerHTML = '';
+        document.getElementById('inp-question').value = '';
+        document.getElementById('inp-answer').value   = '';
+        document.getElementById('inp-guess').value    = '';
+        resetTimerUI();
+        document.getElementById('header-badge').style.display = 'none';
+
+        // Show the right lobby view for this player's new role
+        const isGM = myPlayer && myPlayer.isGameMaster;
+
+        // Update code display for new game master
+        if (isGM && event.data.joinCode) {
+            document.getElementById('lobby-code').textContent = event.data.joinCode;
+            document.getElementById('lobby-code-card').style.display = 'flex';
+        } else {
+            document.getElementById('lobby-code-card').style.display = 'none';
+        }
+        document.getElementById('q-count-card').style.display       = isGM ? 'flex' : 'none';
+        document.getElementById('lobby-waiting-card').style.display = isGM ? 'none' : 'flex';
+
+        // Reset round selector to default
+        document.querySelectorAll('.q-opt').forEach((o, i) => o.classList.toggle('selected', i === 1));
+        selectedQCount = 5;
+
+        renderLobbyPlayers(currentPlayers);
+        addLog(event.message, 'system');
+        show('s-lobby');
+    });
+
+    socket.on('player_left', (event) => {
+        currentPlayers = event.data.players;
+        if (myPlayer) myPlayer = currentPlayers.find(p => p.id === myPlayer.id) || myPlayer;
+        addLog(event.message, 'system');
+        const active = document.querySelector('.screen.active').id;
+        if (active === 's-lobby') renderLobbyPlayers(currentPlayers);
+        else renderScoreTable('live-scores', currentPlayers);
+    });
+}
+
+// ── UTILITIES ─────────────────────────────────
+function renderScoreTable(tbodyId, players) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    [...players].sort((a, b) => b.score - a.score).forEach((p, i) => {
+        const tr = document.createElement('tr');
+        if (i === 0 && p.score > 0) tr.classList.add('gold');
+        tr.innerHTML = `
+            <td class="rank">${i + 1}</td>
+            <td>${p.name}
+                ${p.isGameMaster ? '<span class="badge badge-master" style="margin-left:6px">👑</span>' : ''}
+                ${myPlayer && p.id === myPlayer.id ? '<span class="badge badge-you" style="margin-left:4px">You</span>' : ''}
+            </td>
+            <td class="pts">${p.score}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function makePlayerItem(p, showScore) {
+    const item = document.createElement('div');
+    item.className = 'player-item';
+    const av = document.createElement('div');
+    av.className = 'avatar';
+    av.textContent = p.name[0].toUpperCase();
+    av.style.background = nameColor(p.name);
+    const nm = document.createElement('div');
+    nm.className = 'player-name';
+    nm.textContent = p.name;
+    item.append(av, nm);
+    if (showScore) {
+        const sc = document.createElement('div');
+        sc.className = 'player-pts';
+        sc.textContent = `${p.score} pts`;
+        item.append(sc);
+    }
+    if (p.isGameMaster) {
+        const b = document.createElement('span');
+        b.className = 'badge badge-master'; b.textContent = 'Game Master';
+        item.append(b);
+    }
+    if (myPlayer && p.id === myPlayer.id) {
+        const b = document.createElement('span');
+        b.className = 'badge badge-you'; b.textContent = 'You';
+        item.append(b);
+    }
+    return item;
+}
+
+function resetTimerUI() {
+    document.getElementById('timer-num').textContent = '60s';
+    const fill = document.getElementById('timer-fill');
+    fill.style.width = '100%';
+    fill.style.background = 'var(--accent)';
+}
+
+function nameColor(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+    return `hsl(${Math.abs(h) % 360},55%,42%)`;
+}
+
+// Enter key shortcuts
+document.getElementById('create-name').addEventListener('keydown', e => { if (e.key==='Enter') handleCreate(); });
+document.getElementById('join-name').addEventListener('keydown',   e => { if (e.key==='Enter') handleJoin(); });
+document.getElementById('join-code').addEventListener('keydown',   e => { if (e.key==='Enter') handleJoin(); });
+</script>
+</body>
+</html>
