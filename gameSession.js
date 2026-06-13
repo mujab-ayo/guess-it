@@ -1,6 +1,6 @@
-const Player = require("./Player");
-const Question = require("./Question");
-const Timer = require("./Timer");
+const Player = require("./player");
+const Question = require("./question");
+const Timer = require("./timer");
 
 const GAME_STATES = {
   WAITING: "waiting",
